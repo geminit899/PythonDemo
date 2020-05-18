@@ -1,5 +1,5 @@
 import tensorflow as tf
-from PluginTest.Train import Train
+from .Train import Train
 
 
 class TrainImpl(Train):
