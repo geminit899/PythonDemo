@@ -3,16 +3,12 @@ import os
 import zipfile
 import importlib
 import struct
+import shutil
 import tensorflow as tf
 
 
 def write_int(value, stream):
     stream.write(struct.pack("!i", value))
-
-
-def write_with_length(obj, stream):
-    write_int(len(obj), stream)
-    stream.write(obj)
 
 
 def read_int(stream):
@@ -63,11 +59,8 @@ class TensorflowRunner:
         self.modal_name = read_utf8(infile)
 
         # get super_param
-        super_param_str = read_int(infile)
+        super_param_str = read_utf8(infile)
         self.super_param = eval(super_param_str)
-
-        # get cpu and gpu
-        self.device = read_utf8(infile)
 
         # get the source
         self.source = eval(read_utf8(infile))
@@ -79,6 +72,7 @@ class TensorflowRunner:
             os.makedirs(self.tmp_result)
         if not os.path.exists(self.tmp_summary):
             os.makedirs(self.tmp_summary)
+
 
     def get_batch(self, batch, epoch, batch_size):
         batch_x = []
@@ -99,40 +93,43 @@ class TensorflowRunner:
         train = self.TrainImpl(x, y, keep_prob, self.super_param)
         train.variables()
 
-        transformed_data = train.transform(self.read())
+        files, annotations, categories = self.read()
+        transformed_data = train.transform(files, annotations, categories)
 
-        with tf.device(self.device):
-            session = tf.InteractiveSession()
-            session.run(tf.initialize_all_variables())
+        trainModal = train.modal()
+        trainLoss = train.loss()
+        trainAccuracy = train.accuracy()
 
-            saver = tf.train.Saver()
+        session = tf.InteractiveSession()
+        session.run(tf.initialize_all_variables())
 
-            tf.summary.scalar('loss', train.loss())
-            tf.summary.scalar('accuracy', train.accuracy())
-            merged_summary_op = tf.summary.merge_all()
-            summary_writer = tf.summary.FileWriter(self.tmp_summary, graph=tf.get_default_graph())
+        saver = tf.train.Saver()
 
-            compare = {
-                'loss': 0,
-                'accuracy': 0
-            }
-            for i in range(1, int(self.super_param['epochs']) + 1):
-                batch_x, batch_y = self.get_batch(transformed_data, i, int(self.super_param['batchSize']))
-                session.run([train.modal()],
-                            feed_dict={x: batch_x, y: batch_y, keep_prob: int(self.super_param['dropout'])})
-                if i % 10 == 0:
-                    _, loss, acc, summ = session.run([train.modal(), train.loss(), train.accuracy(), merged_summary_op],
-                                             feed_dict={x: batch_x, y: batch_y, keep_prob: 1})
-                    summary_writer.add_summary(summ, i)
-                    compare['loss'] = loss
-                    compare['accuracy'] = acc
+        tf.summary.scalar('loss', trainLoss)
+        tf.summary.scalar('accuracy', trainAccuracy)
+        merged_summary_op = tf.summary.merge_all()
+        summary_writer = tf.summary.FileWriter(self.tmp_summary, graph=tf.get_default_graph())
 
-            summary_writer.close()
+        compare = {
+            'loss': 0,
+            'accuracy': 0
+        }
+        for i in range(1, int(self.super_param['epochs']) + 1):
+            batch_x, batch_y = self.get_batch(transformed_data, i, int(self.super_param['batchSize']))
+            session.run([trainModal],
+                        feed_dict={x: batch_x, y: batch_y, keep_prob: float(self.super_param['dropout'])})
+            if i % 10 == 0:
+                _, loss, acc, summ = session.run([trainModal, trainLoss, trainAccuracy, merged_summary_op],
+                                                 feed_dict={x: batch_x, y: batch_y, keep_prob: 1})
+                compare['loss'] = loss
+                compare['accuracy'] = acc
+                summary_writer.add_summary(summ, i)
 
-            saver.save(session, os.path.join(self.tmp_result, 'result'), global_step=int(self.super_param['epochs']))
-            self.save(compare)
+        summary_writer.close()
 
-            self.stop()
+        saver.save(session, os.path.join(self.tmp_result, 'result'), global_step=int(self.super_param['epochs']))
+        self.save(compare)
+        self.stop()
 
     def read(self):
         files = []
@@ -142,48 +139,44 @@ class TensorflowRunner:
         for file in file_array:
             path = file['path']
             annotations.append(file['annotations'])
-            if self.storage_type == "file":
-                f = open(path, mode='rb')
-                files.append(f.read())
-                f.close()
-            elif self.storage_type == "hdfs":
-                from hdfs import InsecureClient
-                fs = InsecureClient(self.hdfs_url, root="/", user="hdfs", timeout=1000)
-                with fs.read(path) as reader:
-                    files.append(reader.read())
+            data = self.read_from_file(path)
+            files.append(data)
         return files, annotations, categories
 
     def save(self, compare):
+        # save model result
         zip_file = os.path.join(self.tmp_dir, 'result.zip')
         make_zip(self.tmp_result, zip_file)
         self.copy_file_to_remote(zip_file, self.result_save_path)
-
-        if self.storage_type == "file":
-            f = open(self.compare_save_path, mode='w', encoding="utf-8")
-            f.write(str(compare))
-            f.close()
-        elif self.storage_type == "hdfs":
-            from hdfs import InsecureClient
-            fs = InsecureClient(self.hdfs_url, root="/", user="hdfs", timeout=1000)
-            fs.write(self.compare_save_path, str(compare), overwrite=True, append=False)
-
+        # save model compare
+        self.write_to_file(bytes(str(compare), encoding='utf-8'), self.compare_save_path)
+        # save model tensorflow
         for root, dirs, files in os.walk(self.tmp_summary):
             for file in files:
                 self.copy_file_to_remote(os.path.join(root, file), self.summary_save_path)
 
-    def copy_file_to_remote(self, local_path, remote_path):
-        f = open(local_path, mode='rb')
+    def read_from_file(self, path):
+        f = open(path, mode='rb')
         data = f.read()
         f.close()
+        return data
 
+    def write_to_file(self, data, path):
         if self.storage_type == "file":
-            f = open(remote_path, mode='wb')
+            dir = path[0:path.rindex("/")]
+            if not os.path.exists(dir):
+                os.makedirs(dir)
+            f = open(path, mode='wb')
             f.write(data)
             f.close()
         elif self.storage_type == "hdfs":
             from hdfs import InsecureClient
             fs = InsecureClient(self.hdfs_url, root="/", user="hdfs", timeout=1000)
-            fs.write(remote_path, data, overwrite=True, append=False)
+            fs.write(path, data, overwrite=True, append=False)
+
+    def copy_file_to_remote(self, local_path, remote_path):
+        data = self.read_from_file(local_path)
+        self.write_to_file(data, remote_path)
 
     def stop(self):
-        os.rmdir(self.tmp_dir)
+        shutil.rmtree(self.tmp_dir)

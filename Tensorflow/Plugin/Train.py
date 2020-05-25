@@ -20,8 +20,8 @@ class Train(metaclass=ABCMeta):
     # 其中files是文件内容的list，annotations是标注的list，categories是标注类型的list。
     # 项目为文档时，annotations有两项，annotations[0]是labelCategories的list，annotations[1]是connectionCategories的list；
     #             categories也有两项，categories[0]是labels，categories[1]是connections。
-    # 项目为图片时，annotations只有一项，annotations[0]是annotationCategories的list；
-    #             categories也只有一项，categories[0]是annotations。
+    # 项目为图片时，annotations是annotationCategories的list,每一项都是当前category的annotations；
+    #             categories也只有一项，categories[0]是图片标注种类list。
     #
     # 返回值应为一个二维数组 batch[[], []]，其中batch[0]是x的值，batch[1]是y的值，且batch[0]和batch[1]的长度一致。
     @abstractmethod

@@ -4,8 +4,8 @@ from multiprocessing import Process
 def fix_port():
     argv = [
         "",
-        "--logdir", '/Users/geminit/PycharmProjects/Tensorflow-demo/log/example',
-        '--port', str(6005),
+        "--logdir", '/Users/geminit/PycharmProjects/PythonDemo/Tensorflow/log/example',
+        '--port', str(6055),
     ]
     tensorboard = program.TensorBoard()
     tensorboard.configure(argv)
@@ -17,7 +17,7 @@ def none_fix_port():
         while True:
             argv = [
                 "",
-                "--logdir", '/Users/geminit/PycharmProjects/Tensorflow-demo/log/example',
+                "--logdir", '/Users/geminit/PycharmProjects/PythonDemo/Tensorflow/log/example',
                 '--port', str(port),
             ]
             tensorboard = program.TensorBoard()

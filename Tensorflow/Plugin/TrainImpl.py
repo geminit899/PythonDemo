@@ -1,11 +1,12 @@
 import tensorflow as tf
-from .Train import Train
 
 
-class TrainImpl(Train):
-    def transform(self):
-        from tensorflow.examples.tutorials.mnist import input_data
-        return input_data.read_data_sets("MNIST_data/", one_hot=True)
+class TrainImpl():
+    def __init__(self, x, y, keep_prob, super_param):
+        self.x = x
+        self.y = y
+        self.keep_prob = keep_prob
+        self.super_param = super_param
 
     def variables(self):
         self.weights = {
@@ -20,6 +21,12 @@ class TrainImpl(Train):
             'bd1': tf.Variable(tf.random_normal([1024])),
             'out': tf.Variable(tf.random_normal([10]))
         }
+
+    def transform(self, files, annotations, categories):
+        from tensorflow.examples.tutorials.mnist import input_data
+        mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
+        batch_x, batch_y = mnist.train.next_batch(10000)
+        return [batch_x, batch_y]
 
     def modal(self):
         def conv2d(x, W, b, strides=1):
@@ -46,9 +53,8 @@ class TrainImpl(Train):
 
             out = tf.add(tf.matmul(fc1, weights['out']), biases['out'])
             return out
-
         self.pred = conv_net(self.x, self.weights, self.biases, self.keep_prob)
-        return tf.train.AdamOptimizer(learning_rate=self.super_param['learning_rate']).minimize(self.loss())
+        return tf.train.AdamOptimizer(learning_rate=float(self.super_param['learning_rate'])).minimize(self.loss())
 
     def loss(self):
         return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=self.pred, labels=self.y))

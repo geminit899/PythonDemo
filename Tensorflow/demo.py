@@ -64,11 +64,11 @@ if __name__ == '__main__':
             tf.summary.scalar("accuracy", accuracy)
             merged_summary_op = tf.summary.merge_all()
 
-            summary_writer = tf.summary.FileWriter('../log/example/asdf', graph=tf.get_default_graph())
+            summary_writer = tf.summary.FileWriter('./log/example/ccc', graph=tf.get_default_graph())
             saver = tf.train.Saver()
 
-            for i in range(10):
-                batch_x, batch_y = mnist.train.next_batch(10000)
+            for i in range(50):
+                batch_x, batch_y = mnist.train.next_batch(128)
                 sess.run([optimizer], feed_dict={x: batch_x, y: batch_y, keep_prob: 0.9})
                 if i % 10 == 0:
                     loss_train, acc_train, summary = sess.run([loss, accuracy, merged_summary_op], feed_dict={x: batch_x, y: batch_y, keep_prob: 1.})
