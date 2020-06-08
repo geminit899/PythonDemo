@@ -4,7 +4,7 @@ import socket
 import struct
 from socket import AF_INET, SOCK_STREAM, SOMAXCONN
 
-from .TensorflowRunner import TensorflowRunner
+from tensorflowRunner import TensorflowRunner
 
 
 def write_int(value, stream):
@@ -35,8 +35,8 @@ if __name__ == '__main__':
     outfile = os.fdopen(os.dup(sock.fileno()), "wb", 65536)
 
     # init TensorflowRunner
-    runner = TensorflowRunner(infile)
     try:
+        runner = TensorflowRunner(infile)
         runner.run()
     except:
         write_int(-1, outfile)

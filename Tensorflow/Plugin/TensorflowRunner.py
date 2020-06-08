@@ -65,7 +65,8 @@ class TensorflowRunner:
         # get the source
         self.source = eval(read_utf8(infile))
 
-        self.tmp_dir = os.path.join(os.getcwd(), 'train-tmp', self.modal_name)
+        python_tmp_dir = os.path.join(os.getcwd(), 'data', 'Annotation', 'Annotation-Train', 'tensorflow-tmp')
+        self.tmp_dir = os.path.join(python_tmp_dir, self.modal_name)
         self.tmp_result = os.path.join(self.tmp_dir, 'result')
         self.tmp_summary = os.path.join(self.tmp_dir, 'summary')
         if not os.path.exists(self.tmp_result):
@@ -111,6 +112,7 @@ class TensorflowRunner:
         summary_writer = tf.summary.FileWriter(self.tmp_summary, graph=tf.get_default_graph())
 
         compare = {
+            'epoch': 0,
             'loss': 0,
             'accuracy': 0
         }
@@ -121,9 +123,11 @@ class TensorflowRunner:
             if i % 10 == 0:
                 _, loss, acc, summ = session.run([trainModal, trainLoss, trainAccuracy, merged_summary_op],
                                                  feed_dict={x: batch_x, y: batch_y, keep_prob: 1})
+                compare['epoch'] = i
                 compare['loss'] = loss
                 compare['accuracy'] = acc
                 summary_writer.add_summary(summ, i)
+                self.saveCompare(compare)
 
         summary_writer.close()
 
@@ -142,6 +146,10 @@ class TensorflowRunner:
             data = self.read_from_file(path)
             files.append(data)
         return files, annotations, categories
+
+    def saveCompare(self, compare):
+        # save model compare
+        self.write_to_file(bytes(str(compare), encoding='utf-8'), self.compare_save_path)
 
     def save(self, compare):
         # save model result
