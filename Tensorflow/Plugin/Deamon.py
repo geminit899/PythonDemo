@@ -2,6 +2,7 @@ import os
 import sys
 import socket
 import struct
+import time
 from socket import AF_INET, SOCK_STREAM, SOMAXCONN
 
 from tensorflowRunner import TensorflowRunner
@@ -44,5 +45,6 @@ if __name__ == '__main__':
         runner.stop()
     else:
         write_int(1, outfile)
-
+    outfile.flush()
+    time.sleep(3)
     sock.close()

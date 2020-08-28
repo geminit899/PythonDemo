@@ -1,4 +1,9 @@
-import tensorflow as tf
+# tensorflow 1.x
+# import tensorflow as tf
+# tensorflow 2.x
+import tensorflow.compat.v1 as tf
+tf.disable_eager_execution()
+tf.disable_v2_behavior()
 
 
 class TrainImpl():
@@ -23,7 +28,10 @@ class TrainImpl():
         }
 
     def transform(self, files, annotations, categories):
-        from tensorflow.examples.tutorials.mnist import input_data
+        # tensorflow 1.x
+        # from tensorflow.examples.tutorials.mnist import input_data
+        # tensorflow 2.x
+        from tensorflow_core.examples.tutorials.mnist import input_data
         mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
         batch_x, batch_y = mnist.train.next_batch(10000)
         return [batch_x, batch_y]

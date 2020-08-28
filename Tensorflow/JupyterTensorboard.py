@@ -1,34 +1,23 @@
-# -*- coding: utf-8 -*-
-from tornado import web
-from tornado import ioloop
-from tornado.wsgi import WSGIContainer
-
 from tensorboard import program
 from tensorboard.backend import application
+from tensorboard import default
+from tensorboard.uploader import uploader_main
 
 if __name__ == '__main__':
     argv = [
         "",
-        "--logdir", '/Users/geminit/PycharmProjects/PythonDemo/Tensorflow/log/example',
-        "--reload_interval", str(30),
-        "--purge_orphaned_data", str(True),
+        "--logdir", '/home/geminit/pycharm/PythonDemo/Tensorflow/log/example',
     ]
-    tensorboard = program.TensorBoard()
+    tensorboard = program.TensorBoard(
+        default.get_plugins() + default.get_dynamic_plugins(),
+        program.get_default_assets_zip_provider(),
+        subcommands=[uploader_main.UploaderSubcommand()])
     tensorboard.configure(argv)
-    app = application.standard_tensorboard_wsgi(
-                tensorboard.flags,
-                tensorboard.plugin_loaders,
-                tensorboard.assets_zip_provider)
-
-    class MainHandler(web.RequestHandler):
-        def get(self):
-            self.write("Hello, world")
-
-    server = web.Application([
-        (r"/tt", MainHandler),
-        (r"/ss", WSGIContainer(app)),
-    ])
-    server.listen(8888)
-    ioloop.IOLoop.current().start()
-
-
+    app = application.standard_tensorboard_wsgi(tensorboard.flags,
+                                                tensorboard.plugin_loaders,
+                                                tensorboard.assets_zip_provider)
+    server = tensorboard.server_class(app, tensorboard.flags)
+    server.print_serving_message()
+    port = server.port
+    print(port)
+    server.serve_forever()
