@@ -5,8 +5,6 @@ import struct
 import time
 from socket import AF_INET, SOCK_STREAM, SOMAXCONN
 
-from tensorflowRunner import TensorflowRunner
-
 
 def write_int(value, stream):
     stream.write(struct.pack("!i", value))
@@ -26,7 +24,6 @@ if __name__ == '__main__':
 
     # sent listen_port back to the process run this .py
     stdout_bin = os.fdopen(sys.stdout.fileno(), 'wb', 4)
-
     write_int(listen_port, stdout_bin)
     stdout_bin.flush()
 
@@ -35,8 +32,9 @@ if __name__ == '__main__':
     infile = os.fdopen(os.dup(sock.fileno()), "rb", 65536)
     outfile = os.fdopen(os.dup(sock.fileno()), "wb", 65536)
 
-    # init TensorflowRunner
     try:
+        # init TensorflowRunner
+        from tensorflowRunner import TensorflowRunner
         runner = TensorflowRunner(infile)
         runner.run()
     except:

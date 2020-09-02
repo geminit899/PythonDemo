@@ -4,7 +4,6 @@ import select
 import socket
 import traceback
 import gc
-import time
 import pickle
 from errno import EINTR
 from socket import AF_INET, SOCK_STREAM, SOMAXCONN
@@ -26,12 +25,9 @@ def write_iterator(iterator, of):
     import pyarrow as pa
     import pandas as pd
 
-    time.sleep(3)
-
     writer = None
     try:
         for series in iterator:
-            pickle.dumps([series])
             df = pd.DataFrame(series.asDict(), index=[0])
             batch = pa.RecordBatch.from_pandas(df)
             if writer is None:

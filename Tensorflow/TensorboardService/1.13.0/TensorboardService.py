@@ -77,7 +77,7 @@ class TensorboardWebApplication(web.Application):
 
 
 if __name__ == '__main__':
-    read_config = open('./config.json', mode='r')
+    read_config = open('config.json', mode='r')
     config = eval(read_config.read())
     read_config.close()
 

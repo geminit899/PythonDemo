@@ -3,18 +3,17 @@ import os
 from tensorflow_core.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 
+import tensorflow as tfVersion
+if tfVersion.__version__.startswith('1'):
+    pass
+elif tfVersion.__version__.startswith('2'):
+    import tensorflow.compat.v1 as tf
+    tf.disable_eager_execution()
+    tf.disable_v2_behavior()
+else:
+    raise Exception('tensorflow版本有问题：' + tfVersion)
+
 if __name__ == '__main__':
-    tfVersion = tf.__version__
-    if tfVersion.startswith('1'):
-        pass
-    elif tfVersion.startswith('2'):
-        import tensorflow.compat.v1 as tf
-
-        tf.disable_eager_execution()
-        tf.disable_v2_behavior()
-    else:
-        raise Exception('tensorflow版本有问题：' + tfVersion)
-
     x = tf.placeholder(tf.float32)
     y = tf.placeholder(tf.float32)
     keep_prob = tf.placeholder(tf.float32)

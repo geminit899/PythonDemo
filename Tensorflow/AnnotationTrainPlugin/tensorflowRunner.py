@@ -4,12 +4,15 @@ import zipfile
 import importlib
 import struct
 import shutil
-# tensorflow 1.x
-# import tensorflow as tf
-# tensorflow 2.x
-import tensorflow.compat.v1 as tf
-tf.disable_eager_execution()
-tf.disable_v2_behavior()
+import tensorflow as tfVersion
+if tfVersion.__version__.startswith('1'):
+    pass
+elif tfVersion.__version__.startswith('2'):
+    import tensorflow.compat.v1 as tf
+    tf.disable_eager_execution()
+    tf.disable_v2_behavior()
+else:
+    raise Exception('tensorflow版本不支持：' + tfVersion.__version__)
 
 def write_int(value, stream):
     stream.write(struct.pack("!i", value))
@@ -127,6 +130,7 @@ class TensorflowRunner:
                 compare['loss'] = loss
                 compare['accuracy'] = acc
                 summary_writer.add_summary(summ, i)
+                summary_writer.flush()
                 self.saveCompare(compare)
 
         summary_writer.close()
