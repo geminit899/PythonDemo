@@ -57,7 +57,6 @@ class TensorflowRunner:
 
         # get the modal's save path
         self.result_save_path = read_utf8(infile)
-        self.summary_save_path = read_utf8(infile)
         self.compare_save_path = read_utf8(infile)
         self.modal_name = read_utf8(infile)
 
@@ -71,11 +70,8 @@ class TensorflowRunner:
         python_tmp_dir = os.path.join(os.getcwd(), 'data', 'Annotation', 'Annotation-Train', 'tensorflow-tmp')
         self.tmp_dir = os.path.join(python_tmp_dir, self.modal_name)
         self.tmp_result = os.path.join(self.tmp_dir, 'result')
-        self.tmp_summary = os.path.join(self.tmp_dir, 'summary')
         if not os.path.exists(self.tmp_result):
             os.makedirs(self.tmp_result)
-        if not os.path.exists(self.tmp_summary):
-            os.makedirs(self.tmp_summary)
 
 
     def get_batch(self, batch, epoch, batch_size):
@@ -109,34 +105,27 @@ class TensorflowRunner:
 
         saver = tf.train.Saver()
 
-        tf.summary.scalar('loss', trainLoss)
-        tf.summary.scalar('accuracy', trainAccuracy)
-        merged_summary_op = tf.summary.merge_all()
-        summary_writer = tf.summary.FileWriter(self.tmp_summary, graph=tf.get_default_graph())
-
-        compare = {
-            'epoch': 0,
-            'loss': 0,
-            'accuracy': 0
-        }
+        compares = []
         for i in range(1, int(self.super_param['epochs']) + 1):
             batch_x, batch_y = self.get_batch(transformed_data, i, int(self.super_param['batchSize']))
             session.run([trainModal],
                         feed_dict={x: batch_x, y: batch_y, keep_prob: float(self.super_param['dropout'])})
-            if i % 10 == 0:
-                _, loss, acc, summ = session.run([trainModal, trainLoss, trainAccuracy, merged_summary_op],
-                                                 feed_dict={x: batch_x, y: batch_y, keep_prob: 1})
-                compare['epoch'] = i
-                compare['loss'] = loss
-                compare['accuracy'] = acc
-                summary_writer.add_summary(summ, i)
-                summary_writer.flush()
-                self.saveCompare(compare)
-
-        summary_writer.close()
-
+            if i % 10 == 0 or i == int(self.super_param['epochs']):
+                _, loss, acc = session.run([trainModal, trainLoss, trainAccuracy],
+                                           feed_dict={x: batch_x, y: batch_y, keep_prob: 1})
+                compare = {
+                    'epoch': i,
+                    'loss': round(loss, 2),
+                    'accuracy': round(acc, 2)
+                }
+                compares.append(compare)
+                self.saveCompare(compares)
+        # save model result
         saver.save(session, os.path.join(self.tmp_result, 'result'), global_step=int(self.super_param['epochs']))
-        self.save(compare)
+        zip_file = os.path.join(self.tmp_dir, 'result.zip')
+        make_zip(self.tmp_result, zip_file)
+        self.copy_file_to_remote(zip_file, self.result_save_path)
+
         self.stop()
 
     def read(self):
@@ -153,21 +142,12 @@ class TensorflowRunner:
             files.append(data)
         return files, annotations, categories
 
-    def saveCompare(self, compare):
+    def saveCompare(self, compares):
+        compare = {
+            'compares': compares
+        }
         # save model compare
         self.write_to_file(bytes(str(compare), encoding='utf-8'), self.compare_save_path)
-
-    def save(self, compare):
-        # save model result
-        zip_file = os.path.join(self.tmp_dir, 'result.zip')
-        make_zip(self.tmp_result, zip_file)
-        self.copy_file_to_remote(zip_file, self.result_save_path)
-        # save model compare
-        self.write_to_file(bytes(str(compare), encoding='utf-8'), self.compare_save_path)
-        # save model tensorflow
-        for root, dirs, files in os.walk(self.tmp_summary):
-            for file in files:
-                self.copy_file_to_remote(os.path.join(root, file), self.summary_save_path)
 
     def read_from_file(self, path):
         if self.storage_type == "file":
