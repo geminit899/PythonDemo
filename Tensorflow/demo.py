@@ -1,7 +1,7 @@
 import tensorflow as tf
 import os
 from tensorflow_core.examples.tutorials.mnist import input_data
-mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
+mnist = input_data.read_data_sets("/home/geminit/work/pycharm/PythonDemo/Tensorflow/AnnotationTrainPlugin/MNIST_data/", one_hot=True)
 
 import tensorflow as tfVersion
 if tfVersion.__version__.startswith('1'):
