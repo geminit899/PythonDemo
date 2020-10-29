@@ -6,7 +6,7 @@ tf.disable_eager_execution()
 tf.disable_v2_behavior()
 
 
-class TrainImpl():
+class TrainProject():
     def __init__(self, x, y, keep_prob, super_param):
         self.x = x
         self.y = y

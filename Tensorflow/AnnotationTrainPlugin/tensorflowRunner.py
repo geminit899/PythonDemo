@@ -69,6 +69,7 @@ class TensorflowRunner:
             os.makedirs(self.tmp_result)
 
         # get the source
+        self.sourceDataType = read_utf8(infile)
         self.source = eval(read_utf8(infile))
         self.storage_type = self.source['storageType']
         self.hdfs_url = self.source['host']
@@ -113,8 +114,13 @@ class TensorflowRunner:
         train = self.TrainImpl(x, y, keep_prob, self.super_param)
         train.variables()
 
-        files, annotations, categories = self.read()
-        transformed_data = train.transform(files, annotations, categories)
+        if self.sourceDataType == '标注项目':
+            files, annotations, categories = self.read()
+            transformed_data = train.transform(files, annotations, categories)
+        elif self.sourceDataType == '标注文件':
+            transformed_data = train.transform(self.source)
+        else:
+            raise Exception('不支持该标注训练数据类型: ' + self.sourceDataType + ' !')
 
         trainModal = train.modal()
         trainLoss = train.loss()

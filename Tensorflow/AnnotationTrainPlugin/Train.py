@@ -15,17 +15,22 @@ class Train(metaclass=ABCMeta):
     @abstractmethod
     def variables(self): pass
 
-    # 用于用户将标注文件转换为其模型训练所需的格式
-    # 传入参数有三个，分别是files, annotations, categories，
-    # 其中files是文件内容的list，annotations是标注的list，categories是标注类型的list。
-    # 项目为文档时，annotations有两项，annotations[0]是labelCategories的list，annotations[1]是connectionCategories的list；
-    #             categories也有两项，categories[0]是labels，categories[1]是connections。
-    # 项目为图片时，annotations是annotationCategories的list,每一项都是当前category的annotations；
-    #             categories也只有一项，categories[0]是图片标注种类list。
+    # 用于用户将标注数据转换为其模型训练所需的格式
+    # 当标注数据格式为标注项目时：
+    #     传入参数有三个，分别是files, annotations, categories，
+    #     其中files是文件内容的list，annotations是标注的list，categories是标注类型的list。
+    #     项目为文档时，annotations有两项，annotations[0]是labelCategories的list，annotations[1]是connectionCategories的list；
+    #                 categories也有两项，categories[0]是labels，categories[1]是connections。
+    #     项目为图片时，annotations是annotationCategories的list,每一项都是当前category的annotations；
+    #                 categories也只有一项，categories[0]是图片标注种类list。
+    @abstractmethod
+    def transform(self, files, annotations, categories): pass
+    # 当标注数据格式为标注文件时：
+    #    传入参数只有一个，为datas，是所有数据的list，其中每一项data，都是map，用data[i].name获取其值。
     #
     # 返回值应为一个二维数组 batch[[], []]，其中batch[0]是x的值，batch[1]是y的值，且batch[0]和batch[1]的长度一致。
     @abstractmethod
-    def transform(self, files, annotations, categories): pass
+    def transform(self, datas): pass
 
     # 用于用户编写其训练代码，形成计算图
     @abstractmethod
