@@ -70,9 +70,9 @@ class TensorflowRunner:
 
         # get the source
         self.sourceDataType = read_utf8(infile)
+        self.storage_type = read_utf8(infile)
+        self.hdfs_url = read_utf8(infile)
         self.source = eval(read_utf8(infile))
-        self.storage_type = self.source['storageType']
-        self.hdfs_url = self.source['host']
 
         # get the path of modal zip file
         modal_path = read_utf8(infile)
@@ -132,20 +132,23 @@ class TensorflowRunner:
         saver = tf.train.Saver()
 
         compares = []
-        for i in range(1, int(self.super_param['epochs']) + 1):
-            batch_x, batch_y = self.get_batch(transformed_data, i, int(self.super_param['batchSize']))
+        for epoch in range(1, int(self.super_param['epochs']) + 1):
+            batches =
+            for i in range(1, )
+            batch_x, batch_y = self.get_batch(transformed_data, epoch, int(self.super_param['batchSize']))
             session.run([trainModal],
                         feed_dict={x: batch_x, y: batch_y, keep_prob: float(self.super_param['dropout'])})
-            if i % 10 == 0 or i == int(self.super_param['epochs']):
+            if epoch % 10 == 0 or epoch == int(self.super_param['epochs']):
                 _, loss, acc = session.run([trainModal, trainLoss, trainAccuracy],
                                            feed_dict={x: batch_x, y: batch_y, keep_prob: 1})
                 compare = {
-                    'epoch': i,
+                    'epoch': epoch,
                     'loss': round(loss, 2),
                     'accuracy': round(acc, 2)
                 }
                 compares.append(compare)
-                self.saveCompare(compares)
+                # save model compare
+                self.write_to(bytes(str(compares), encoding='utf-8'), self.compare_save_path)
         # save model result
         saver.save(session, os.path.join(self.tmp_result, 'result'), global_step=int(self.super_param['epochs']))
         zip_file = os.path.join(self.tmp_dir, 'result.zip')
@@ -165,13 +168,6 @@ class TensorflowRunner:
             data = self.read_from(path)
             files.append(data)
         return files, annotations, categories
-
-    def saveCompare(self, compares):
-        compare = {
-            'compares': compares
-        }
-        # save model compare
-        self.write_to(bytes(str(compare), encoding='utf-8'), self.compare_save_path)
 
     def read_from(self, path):
         if self.storage_type == "file":

@@ -27,7 +27,7 @@ class TrainFile():
             'out': tf.Variable(tf.random_normal([10]))
         }
 
-    def transform(self, datas):
+    def transform(self, files, annotations, categories):
         # tensorflow 1.x
         # from tensorflow.examples.tutorials.mnist import input_data
         # tensorflow 2.x
@@ -70,4 +70,3 @@ class TrainFile():
     def accuracy(self):
         correct_prediction = tf.equal(tf.argmax(self.pred, 1), tf.argmax(self.y, 1))
         return tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-
