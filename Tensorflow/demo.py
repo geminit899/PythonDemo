@@ -1,7 +1,8 @@
 import tensorflow as tf
 import os
+import math
 from tensorflow_core.examples.tutorials.mnist import input_data
-mnist = input_data.read_data_sets("/home/geminit/work/pycharm/PythonDemo/Tensorflow/AnnotationTrainPlugin/MNIST_data/", one_hot=True)
+mnist = input_data.read_data_sets("/home/geminit/MNIST_data/", one_hot=True)
 
 import tensorflow as tfVersion
 if tfVersion.__version__.startswith('1'):
@@ -44,6 +45,19 @@ if __name__ == '__main__':
         return out
 
 
+    def get_batch(x, y, batch_index, batch_size):
+        batch_x = []
+        batch_y = []
+        start_index = batch_index * batch_size
+        for i in range(batch_size):
+            index = start_index + i
+            if index >= len(x):
+                break
+            batch_x.append(x[index])
+            batch_y.append(y[index])
+        return batch_x, batch_y
+
+
     weights = {
         'wc1': tf.Variable(tf.random_normal([5, 5, 1, 32])),
         'wc2': tf.Variable(tf.random_normal([5, 5, 32, 64])),
@@ -77,14 +91,23 @@ if __name__ == '__main__':
             summary_writer = tf.summary.FileWriter('./log/example/ccc', graph=tf.get_default_graph())
             saver = tf.train.Saver()
 
-            for i in range(50):
-                batch_x, batch_y = mnist.train.next_batch(128)
-                sess.run([optimizer], feed_dict={x: batch_x, y: batch_y, keep_prob: 0.9})
-                if i % 10 == 0:
-                    loss_train, acc_train, summary = sess.run([loss, accuracy, merged_summary_op], feed_dict={x: batch_x, y: batch_y, keep_prob: 1.})
-                    summary_writer.add_summary(summary, i)
-                    summary_writer.flush()
-                    print('Iter ' + str(i) + ', Minibatch Loss= ' + '{:.2f}'.format(loss_train) + ', Accuracy= ' + '{:.2f}'.format(acc_train))
+            compares = []
+            for epoch in range(50):
+                batch_num = math.ceil(len(mnist.train.images) / 256)
+                for batch_index in range(batch_num):
+                    batch_x, batch_y = get_batch(mnist.train.images, mnist.train.labels, batch_index, 256)
+                    sess.run([optimizer], feed_dict={x: batch_x, y: batch_y, keep_prob: 0.85})
+                batch_num = math.ceil(len(mnist.test.images) / 256)
+                for batch_index in range(batch_num):
+                    test_x, test_y = get_batch(mnist.test.images, mnist.test.labels, batch_index, 256)
+                    loss, acc = sess.run([loss, accuracy], feed_dict={x: test_x, y: test_y, keep_prob: 1})
+
+                compare = {
+                    'epoch': epoch,
+                    'loss': round(loss, 2),
+                    'accuracy': round(acc, 2)
+                }
+                compares.append(compare)
 
             summary_writer.close()
 

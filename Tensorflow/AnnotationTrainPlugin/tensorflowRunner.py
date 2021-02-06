@@ -132,17 +132,15 @@ class TensorflowRunner:
         saver = tf.train.Saver()
 
         compares = []
-        for epoch in range(1, int(self.super_param['epochs']) + 1):
-            batches =
-            for i in range(1, )
-            batch_x, batch_y = self.get_batch(transformed_data, epoch, int(self.super_param['batchSize']))
+        for i in range(1, int(self.super_param['epochs']) + 1):
+            batch_x, batch_y = self.get_batch(transformed_data, i, int(self.super_param['batchSize']))
             session.run([trainModal],
                         feed_dict={x: batch_x, y: batch_y, keep_prob: float(self.super_param['dropout'])})
-            if epoch % 10 == 0 or epoch == int(self.super_param['epochs']):
+            if i % 10 == 0 or i == int(self.super_param['epochs']):
                 _, loss, acc = session.run([trainModal, trainLoss, trainAccuracy],
                                            feed_dict={x: batch_x, y: batch_y, keep_prob: 1})
                 compare = {
-                    'epoch': epoch,
+                    'epoch': i,
                     'loss': round(loss, 2),
                     'accuracy': round(acc, 2)
                 }
