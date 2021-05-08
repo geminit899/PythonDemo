@@ -14,7 +14,7 @@ if __name__ == '__main__':
         def _ReloadForever():
             current_thread = threading.currentThread()
             while not current_thread.stop:
-                multiplexer.AddRunsFromDirectory('/Users/geminit/PycharmProjects/PythonDemo/Tensorflow/log/example', '')
+                multiplexer.AddRunsFromDirectory('/Users/geminit/PycharmProjects/PythonDemo/Tensorflow1/log/example', '')
                 multiplexer.Reload()
                 current_thread.reload_time = time.time()
                 time.sleep(reload_interval)
@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     argv = [
         "",
-        "--logdir", '/Users/geminit/PycharmProjects/PythonDemo/Tensorflow/log/example',
+        "--logdir", '/Users/geminit/PycharmProjects/PythonDemo/Tensorflow1/log/example',
         "--reload_interval", str(5),
         "--purge_orphaned_data", str(True),
     ]

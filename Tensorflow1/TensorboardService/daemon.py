@@ -12,7 +12,7 @@ if __name__ == '__main__':
 
     import tensorboard as tbVersion
     if tbVersion.__version__.startswith('1'):
-        # Tensorflow 1.10 or above series
+        # Tensorflow1 1.10 or above series
         from tornado import web
         from tornado import httpserver
         from tornado import ioloop

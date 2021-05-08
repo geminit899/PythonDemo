@@ -12,7 +12,7 @@ try:
     from tensorboard import default
 
     if hasattr(default, 'PLUGIN_LOADERS') or hasattr(default, '_PLUGINS'):
-        # Tensorflow 1.10 or above series
+        # Tensorflow1 1.10 or above series
         logging.debug("Tensorboard 1.10 or above series detected")
         from tensorboard import program
 
