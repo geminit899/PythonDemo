@@ -1,6 +1,10 @@
-import time
+def math(i):
+    print(1)
+    if i == 1:
+        return
+    print(2)
 
 
 if __name__ == '__main__':
-    t = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
-    print(t)
+    i = 1
+    math(i)
