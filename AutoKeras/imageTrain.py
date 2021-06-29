@@ -18,3 +18,7 @@ if __name__ == "__main__":
 
     clf = ak.ImageClassifier()
     clf.fit(x, y)
+
+    pred_y = clf.predict(x)
+
+    print(1)

@@ -1,6 +1,8 @@
+import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+from sklearn.metrics import confusion_matrix
 
 
 class CategoricalTruePositives(keras.metrics.Metric):
@@ -56,11 +58,25 @@ if __name__ == '__main__':
         loss=keras.losses.SparseCategoricalCrossentropy(),
         metrics=[keras.metrics.SparseCategoricalAccuracy(), CategoricalTruePositives()],
     )
-    history = model.fit(x_train, y_train, batch_size=64, epochs=5, callbacks=[CustomCallback()])
+    model.fit(x_train, y_train, batch_size=64, epochs=5, callbacks=[CustomCallback()])
 
 
-    results = model.evaluate(x_test, y_test, batch_size=128)
+    # results = model.evaluate(x_test, y_test, batch_size=128)
 
-    predictions = model.predict(x_test[:3])
+    predict_y = model.predict(x_test)
+    true_classes = np.argmax(predict_y, 1)
+    labels = range(len(set(true_classes)))
+    cm = confusion_matrix(true_classes, y_test, labels=labels)
+    cm_str = "["
+    for i in range(0, len(cm)):
+        cm_str += "["
+        for j in range(0, len(cm[i])):
+            cm_str += str(cm[i][j])
+            if not j == len(cm[i]) - 1:
+                cm_str += ","
+        cm_str += "]"
+    cm_str += "]"
+
+
 
     print(1)
