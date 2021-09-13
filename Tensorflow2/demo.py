@@ -2,7 +2,6 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-from sklearn.metrics import confusion_matrix
 
 
 class CategoricalTruePositives(keras.metrics.Metric):
@@ -27,21 +26,28 @@ class CategoricalTruePositives(keras.metrics.Metric):
         self.true_positives.assign(0.0)
 
 
-class CustomCallback(keras.callbacks.Callback):
-    def on_epoch_end(self, epoch, logs=None):
-        compare = {'epoch': epoch}
-        compare.update(logs)
-
-
 if __name__ == '__main__':
     inputs = keras.Input(shape=(784,), name="digits")
     x = layers.Dense(64, activation="relu", name="dense_1")(inputs)
     x = layers.Dense(64, activation="relu", name="dense_2")(x)
     outputs = layers.Dense(10, activation="softmax", name="predictions")(x)
     model = keras.Model(inputs=inputs, outputs=outputs)
+    model.compile(
+        optimizer=keras.optimizers.RMSprop(learning_rate=0.01),
+        loss=keras.losses.SparseCategoricalCrossentropy(),
+        metrics=[keras.metrics.SparseCategoricalAccuracy(), CategoricalTruePositives()],
+    )
 
+    from tensorflow.python.keras.utils.data_utils import get_file
 
-    (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
+    path = get_file(
+        fname='mnist.npz',
+        cache_dir='./',
+        origin='mnist.npz')
+    with np.load(path, allow_pickle=True) as f:
+        x_train, y_train = f['x_train'], f['y_train']
+        x_test, y_test = f['x_test'], f['y_test']
+
     # Preprocess the data (these are NumPy arrays)
     x_train = x_train.reshape(60000, 784).astype("float32") / 255
     x_test = x_test.reshape(10000, 784).astype("float32") / 255
@@ -50,33 +56,21 @@ if __name__ == '__main__':
     # Reserve 10,000 samples for validation
     x_val = x_train[-10000:]
     y_val = y_train[-10000:]
-    x_train = x_train[:-10000]
-    y_train = y_train[:-10000]
+    train_x = x_train[:-10000]
+    train_y = y_train[:-10000]
 
-    model.compile(
-        optimizer=keras.optimizers.RMSprop(learning_rate=1e-3),
-        loss=keras.losses.SparseCategoricalCrossentropy(),
-        metrics=[keras.metrics.SparseCategoricalAccuracy(), CategoricalTruePositives()],
-    )
-    model.fit(x_train, y_train, batch_size=64, epochs=5, callbacks=[CustomCallback()])
+    compares = []
+    print('train start.')
+    class CustomCallback(tf.keras.callbacks.Callback):
+        def __init__(self, compares):
+            super().__init__()
+            self.compares = compares
 
-
-    # results = model.evaluate(x_test, y_test, batch_size=128)
-
-    predict_y = model.predict(x_test)
-    true_classes = np.argmax(predict_y, 1)
-    labels = range(len(set(true_classes)))
-    cm = confusion_matrix(true_classes, y_test, labels=labels)
-    cm_str = "["
-    for i in range(0, len(cm)):
-        cm_str += "["
-        for j in range(0, len(cm[i])):
-            cm_str += str(cm[i][j])
-            if not j == len(cm[i]) - 1:
-                cm_str += ","
-        cm_str += "]"
-    cm_str += "]"
-
-
-
-    print(1)
+        def on_epoch_end(self, epoch, logs=None):
+            compare = {'epoch': epoch + 1}
+            compare.update(logs)
+            self.compares.append(compare)
+            # save model compare
+            print('Epoch ' + str(epoch + 1) + ' saving.')
+    model.fit(train_x, train_y, batch_size=256, epochs=5, callbacks=[CustomCallback(compares)])
+    print(str(compares))
