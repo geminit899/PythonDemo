@@ -3,13 +3,15 @@ import sys
 import copy
 import conf
 import time
+import threading
 import traceback
 import alphashape
 from logger import LOG
-from utils import http_get, get_points_from_oracle, write_boundary_and_reachable_point_into_oracle, divide_list_to_parts
+from utils import http_get, get_points_from_oracle, write_boundary_and_reachable_point_into_oracle, \
+    divide_list_to_parts, divide_df_to_parts
 
 
-def get_surround_poi_list(location):
+def get_surround_poi_list(location, ak):
     """
     获取目标点以15分钟步程为半径，范围内所有的点
     :param:  location 如：'39.915,116.404'
@@ -26,7 +28,7 @@ def get_surround_poi_list(location):
         page_num = 0
         while True:
             poi_param['page_num'] = page_num
-            results = http_get(conf.POI_URL, poi_param, 'POI')
+            results = http_get(conf.POI_URL, poi_param, 'POI', ak)
             if len(results) == 0:
                 break
             for result in results:
@@ -35,7 +37,7 @@ def get_surround_poi_list(location):
     return poi_map.values()
 
 
-def get_reachable_poi_list(location):
+def get_reachable_poi_list(location, ak):
     """
     在已有点列表中，获取目标点周围15分钟内，可以步行达到的所有点
     :param:  location            如：39.915,116.404
@@ -43,7 +45,7 @@ def get_reachable_poi_list(location):
     ['39.915,116.404', '39.915,116.404', '39.915,116.404', '39.915,116.404', '39.915,116.404']
     """
     # 根据目标点，获取以15分钟步程为半径，所有周围点，poi_list是一维数组
-    poi_list = get_surround_poi_list(location)
+    poi_list = get_surround_poi_list(location, ak)
     # 将所有周围点平均分成三份，分别使用三个接口
     poi_list_parts = divide_list_to_parts(poi_list, 3)
     ride_part = poi_list_parts[0]
@@ -59,7 +61,7 @@ def get_reachable_poi_list(location):
         if poi == location:
             continue
         ride_param['destination'] = poi
-        results = http_get(conf.RIDE_URL, ride_param, 'RIDE')
+        results = http_get(conf.RIDE_URL, ride_param, 'RIDE', ak)
         if 'routes' in results and len(results['routes']) > 0 and 'distance' in results['routes'][0]:
             if results['routes'][0]['distance'] <= 1100:
                 reachable_poi_list.append(poi)
@@ -70,7 +72,7 @@ def get_reachable_poi_list(location):
         if poi == location:
             continue
         path_ride_param['destination'] = poi
-        results = http_get(conf.PATH_RIDE_URL, path_ride_param, 'PATH_RIDE')
+        results = http_get(conf.PATH_RIDE_URL, path_ride_param, 'PATH_RIDE', ak)
         if 'routes' in results and len(results['routes']) > 0 and 'distance' in results['routes'][0]:
             if results['routes'][0]['distance'] <= 1100:
                 reachable_poi_list.append(poi)
@@ -81,7 +83,7 @@ def get_reachable_poi_list(location):
         if poi == location:
             continue
         batch_walk_param['destinations'] = poi
-        results = http_get(conf.BATCH_WALK_URL, batch_walk_param, 'BATCH_WALK')
+        results = http_get(conf.BATCH_WALK_URL, batch_walk_param, 'BATCH_WALK', ak)
         if len(results) > 0 and 'duration' in results[0] and 'value' in results[0]['duration']:
             if results[0]['duration']['value'] <= 900:
                 reachable_poi_list.append(poi)
@@ -113,7 +115,7 @@ def get_points_boundary(points):
     return []
 
 
-def connect_boundary_point(boundary_point_list):
+def connect_boundary_point(boundary_point_list, ak):
     """
     遍历边缘点列表，按顺序依次获取两个边缘点之间的路径
     :param:  boundary_point_list  边界点顺序集合  结构如：
@@ -131,7 +133,7 @@ def connect_boundary_point(boundary_point_list):
         path_walk_param = copy.deepcopy(conf.PATH_WALK_PARAM)
         path_walk_param['origin'] = boundary_point_list[i]
         path_walk_param['destination'] = boundary_point_list[i + 1]
-        results = http_get(conf.PATH_WALK_URL, path_walk_param, 'PATH_WALK')
+        results = http_get(conf.PATH_WALK_URL, path_walk_param, 'PATH_WALK', ak)
         if 'routes' in results and len(results['routes']) > 0 and 'steps' in results['routes'][0]:
             steps = results['routes'][0]['steps']
             for j in range(len(steps)):
@@ -143,7 +145,7 @@ def connect_boundary_point(boundary_point_list):
     return boundary_path_list
 
 
-def get_boundary(reachable_poi_list):
+def get_boundary(reachable_poi_list, ak):
     """
     根据点列表，获取最外围的所有点，并将其按顺序一一连接，返回边界线上的所有点
     :param:  reachable_poi_list   可达点列表  如：
@@ -159,7 +161,7 @@ def get_boundary(reachable_poi_list):
     # 使用AS算法获取边缘点的顺序列表，boundary_point_list是一维数组
     boundary_point_list = get_points_boundary(points)
     # 遍历边缘点列表，按顺序依次获取两个边缘点之间的路径，boundary_path_list是二维数组
-    boundary_path_list = connect_boundary_point(boundary_point_list)
+    boundary_path_list = connect_boundary_point(boundary_point_list, ak)
     # 清除相邻两个边缘点路径的重合部分
     for i in range(len(boundary_path_list)):
         suf_index = (i + 1) % len(boundary_path_list)
@@ -205,6 +207,46 @@ def filter_point(dataframe, points, type):
     return reachable_resource_list
 
 
+def process_thread(all_point, ak_list, error_row):
+    # 遍历所有小区，获取可达边界及可达资源点，并写入数据库
+    ak_index = 0
+    for row in all_point.itertuples():
+        ak = ak_list[ak_index]
+        time_start = time.time()
+        message = 'ID:' + row.ID + ', AK:' + ak
+        try:
+            # 目标点
+            location = str(row.LAT) + "," + str(row.LNG)
+            message += '，经纬度:' + location
+            # 获取目标点周围步行15分钟可达点
+            reachable_poi_list = get_reachable_poi_list(location, ak)
+            message += '，可达点个数:' + str(len(reachable_poi_list))
+            # 根据所有可达点，获取可达范围边界
+            boundary_path_list = get_boundary(reachable_poi_list, ak)
+            message += '，可达边界点个数:' + str(len(boundary_path_list))
+            # 根据所有可达点，过滤出现有资源点
+            reachable_filtered_list = filter_point(all_point, reachable_poi_list, row.TYPE)
+            if row.TYPE == 'house':
+                message += '，可达资源点个数:'
+            else:
+                message += '，可达小区点个数:'
+            message += str(len(reachable_filtered_list))
+            write_boundary_and_reachable_point_into_oracle(row.ID, boundary_path_list, reachable_filtered_list)
+        except:
+            error_row.append(row.ID)
+            message += '，处理出现错误。'
+            e = traceback.format_exc()
+            if e is not None:
+                message += '错误详情：' + e
+            LOG.error(message)
+        else:
+            time_end = time.time()
+            message += '，花费' + str(round(time_end - time_start)) + '秒。'
+            LOG.info(message)
+        # 每个目标点使用一个AK，所有AK循环使用
+        ak_index = (ak_index + 1) % len(ak_list)
+
+
 if __name__ == '__main__':
     # 循环处理全体数据
     while True:
@@ -221,49 +263,19 @@ if __name__ == '__main__':
         else:
             LOG.info('已从数据库获取所有点，长度为：' + str(all_point.__len__()))
 
+        all_point_parts = divide_df_to_parts(all_point, conf.THREAD_NUM)
+        aks = divide_list_to_parts(conf.AK, conf.THREAD_NUM)
+
         # 处理出现错误的点ID
         error_row = []
 
-        # 遍历所有小区，获取可达边界及可达资源点，并写入数据库
-        for row in all_point.itertuples():
-            if conf.START_FROM != '':
-                if conf.START_FROM == row.ID:
-                    conf.START_FROM = ''
-                else:
-                    continue
-            time_start = time.time()
-            message = 'ID:' + row.ID + ', 类型：' + row.TYPE
-            try:
-                # 目标点
-                location = str(row.LAT) + "," + str(row.LNG)
-                message += '，经纬度:' + location
-                # 获取目标点周围步行15分钟可达点
-                reachable_poi_list = get_reachable_poi_list(location)
-                message += '，所有可达点个数:' + str(len(reachable_poi_list))
-                # 根据所有可达点，获取可达范围边界
-                boundary_path_list = get_boundary(reachable_poi_list)
-                message += '，可达边界范围点个数:' + str(len(boundary_path_list))
-                # 根据所有可达点，过滤出现有资源点
-                reachable_filtered_list = filter_point(all_point, reachable_poi_list, row.TYPE)
-                if row.TYPE == 'house':
-                    message += '，可达资源点个数:'
-                else:
-                    message += '，可达小区点个数:'
-                message += str(len(reachable_filtered_list))
-                write_boundary_and_reachable_point_into_oracle(row.ID, boundary_path_list, reachable_filtered_list)
-            except:
-                error_row.append(row.ID)
-                message += '，处理出现错误。'
-                e = traceback.format_exc()
-                if e is not None:
-                    message += '错误详情：' + e
-                LOG.error(message)
-            else:
-                time_end = time.time()
-                message += '，一共花费 ' + str(round(time_end - time_start)) + '秒。'
-                LOG.info(message)
-            # 每个目标点使用一个AK，所有AK循环使用
-            conf.AK_INDEX = (conf.AK_INDEX + 1) % len(conf.AK)
+        thread_list = []
+        for i in range(len(all_point_parts)):
+            thread_list.append(threading.Thread(target=process_thread, args=(all_point_parts[i], aks[i], error_row)))
+        for thread in thread_list:
+            thread.start()
+        for thread in thread_list:
+            thread.join()
 
         if len(error_row) == 0:
             LOG.info('完成一次全体采集。所有点均处理成功。')

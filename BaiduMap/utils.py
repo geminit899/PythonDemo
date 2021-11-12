@@ -9,7 +9,7 @@ import pandas as pd
 from logger import LOG
 
 
-def http_get(url, params, type):
+def http_get(url, params, type, ak):
     """
     http的get方法
     :param url
@@ -20,7 +20,7 @@ def http_get(url, params, type):
     key = conf.HTTP_RESPONSE_KEY[type]
     # 3次重试
     for i in range(3):
-        params['ak'] = conf.AK[conf.AK_INDEX]
+        params['ak'] = ak
         # 防止并发过大，导致请求失败，每次请求后都挂起0.05秒
         time.sleep(0.05)
         try:
@@ -121,3 +121,20 @@ def divide_list_to_parts(list, n):
     for i, e in enumerate(list):
         list_parts[i % n].append(e)
     return list_parts
+
+
+def divide_df_to_parts(df, n):
+    """
+    将一个list尽可能平均分成n份
+    :param df: 原dataframe
+    :param n: 分成几个df
+    :param df_parts 结果
+    """
+    df_parts = []
+    part_num = round(len(df) / n)
+    for i in range(n):
+        if i == n - 1:
+            df_parts.append(df[i * part_num:])
+        else:
+            df_parts.append(df[i * part_num:(i + 1) * part_num])
+    return df_parts

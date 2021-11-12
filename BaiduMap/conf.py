@@ -3,13 +3,15 @@
 ORACLE_URL = '192.168.0.114:1521/helowin'
 ORACLE_NAME = 'BDMAPS'
 ORACLE_PASSWORD = 'BDMAPS'
-# 重新运行此程序时，开始收集的点的ID（即MAP_POINT表中的ID字段，若为空，则从头开始全部收集）
-START_FROM = ''
+
+# 开几个线程
+THREAD_NUM = 2
 
 # 百度地图AK配置，每个AK都有3万条配额/天/接口
-AK = ['umCXbE27GqcbCuqlFOga5UQc4TNNYlxk', 'kBNzo7ovDo7Sh4yh2PtNyuo0FiapPbgj', 'gu7fLpPo9x9LfqGbVcH467YuA2QwVbf5', '4CqkTApXPUW6jAjEE82G2uG68iucaqut', 'y782G5eLTMMgM4iU4ScAMld2zXe6mXL6']
-# AK的索引，从0开始
-AK_INDEX = 0
+AK = ['umCXbE27GqcbCuqlFOga5UQc4TNNYlxk', 'kBNzo7ovDo7Sh4yh2PtNyuo0FiapPbgj', 'gu7fLpPo9x9LfqGbVcH467YuA2QwVbf5',
+      '4CqkTApXPUW6jAjEE82G2uG68iucaqut', 'y782G5eLTMMgM4iU4ScAMld2zXe6mXL6', 'ZiZ8Rwy1wGRAxGGc5snBKnLKMD8Nyhv8',
+      '6aH4Ny4GKrrS6L2VjsxknTIw46LzqaYT', 'ShVxT2hfkdp5dFKFOSRdBYvAukLIflYf', 'Ovxj0WwIHne4gsVGoRO7rn6dIyhIeYaW',
+      'aW80l5yuHWOgkcyBL2OpUxw00xvbsHBa']
 
 # http请求返回值的key，按类型分
 HTTP_RESPONSE_KEY = {
