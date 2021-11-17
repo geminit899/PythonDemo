@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # oracle数据库配置
-ORACLE_URL = '192.168.0.114:1521/helowin'
-ORACLE_NAME = 'BDMAPS'
-ORACLE_PASSWORD = 'BDMAPS'
+ORACLE_URL = '192.168.0.23:1521/helowin'
+ORACLE_NAME = 'DEMO'
+ORACLE_PASSWORD = 'DEMO'
 
 # 开几个线程
 THREAD_NUM = 2

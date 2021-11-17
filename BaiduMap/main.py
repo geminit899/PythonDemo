@@ -101,17 +101,20 @@ def get_points_boundary(points):
     if len(points) == 0:
         return []
     alpha = 300
-    while alpha >= 0:
-        res = alphashape.alphashape(points, alpha)
-        if res.type != 'Polygon':
-            alpha = alpha - 1
-            continue
-        # 从边缘点中提取边缘tuple的顺序列表，列表项包含uid和location
-        boundary_point_list = []
-        x, y = res.boundary.coords.xy
-        for i in range(len(x)):
-            boundary_point_list.append(str(x[i]) + "," + str(y[i]))
-        return boundary_point_list
+    try:
+        while alpha >= 0:
+            res = alphashape.alphashape(points, alpha)
+            if res.type != 'Polygon':
+                alpha = alpha - 1
+                continue
+            # 从边缘点中提取边缘tuple的顺序列表，列表项包含uid和location
+            boundary_point_list = []
+            x, y = res.boundary.coords.xy
+            for i in range(len(x)):
+                boundary_point_list.append(str(x[i]) + "," + str(y[i]))
+            return boundary_point_list
+    except:
+        pass
     return []
 
 

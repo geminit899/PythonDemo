@@ -1,16 +1,12 @@
-import os
-from util import test
+import cx_Oracle
 
 
 if __name__ == '__main__':
-    for i in range(5):
-        print(i)
-        try:
-            pid = os.fork()
-        except:
-            pass
+    db = cx_Oracle.connect('DEMO', 'DEMO', '192.168.0.23:1521/helowin')
+    cr = db.cursor()
+    cr.execute("select * from MAP_POINT where ID not exists (select ID from BOUNDARY) order by ID asc")
+    cr.close()
+    db.commit()
+    db.close()
 
-        if pid == 0:
-            test()
-            os._exit(0)
     print("over")

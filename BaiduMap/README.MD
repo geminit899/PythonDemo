@@ -6,14 +6,17 @@
 
 运行前准备：
 一、python版本：3.6.0，需要安装依赖：
-    pandas       0.25.3
-    requests     2.26.0
-    cx_oracle    8.2.1
-    alphashape   1.3.1
+    pandas==0.25.3
+    requests==2.26.0
+    cx_oracle==8.2.1
+    alphashape==1.3.1
 
 二、python连接Oracle数据库，不仅要按照 cx_oracle 。还需要按照 Oracle 客户端。
     首先在 https://www.oracle.com/database/technologies/instant-client/downloads.html 下载对应包
     然后解压下载的包，并将其解压后路径加到环境变量中即可。
+    如：下载包为A.zip，在/usr/local中解压，得到解压后路径 /usr/local/A
+    vim /etc/profile
+    export LD_LIBRARY_PATH=/usr/local/A
 
 三、确认数据库中的表都已建好，且至少包含以下关键字段：
 MAP_POINT表:
