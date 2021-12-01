@@ -101,8 +101,8 @@ def get_points_boundary(points):
     if len(points) == 0:
         return []
     alpha = 300
-    try:
-        while alpha >= 0:
+    while alpha >= 0:
+        try:
             res = alphashape.alphashape(points, alpha)
             if res.type != 'Polygon':
                 alpha = alpha - 1
@@ -113,8 +113,8 @@ def get_points_boundary(points):
             for i in range(len(x)):
                 boundary_point_list.append(str(x[i]) + "," + str(y[i]))
             return boundary_point_list
-    except:
-        pass
+        except:
+            continue
     return []
 
 
