@@ -73,4 +73,4 @@ if __name__ == '__main__':
 
     experiment_id = ''.join(random.sample(string.ascii_letters + string.digits, 8))
 
-    launch_experiment(args, experiment_config2, 'new', experiment_id)
+    launch_experiment(args, experiment_config, 'new', experiment_id)
