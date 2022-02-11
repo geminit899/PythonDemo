@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # oracle数据库配置
-ORACLE_URL = '192.168.0.23:1521/helowin'
-ORACLE_NAME = 'DEMO'
-ORACLE_PASSWORD = 'DEMO'
+ORACLE_URL = '192.168.0.112:1521/helowin'
+ORACLE_NAME = 'geminit'
+ORACLE_PASSWORD = 'hack'
 
 # 开几个线程
 THREAD_NUM = 2

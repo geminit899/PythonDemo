@@ -253,7 +253,7 @@ if __name__ == '__main__':
         # points = clear_duplicate_path(points)
         # points = clear_narrow_path(points)
 
-        file = open("/Users/geminit/Desktop/conf.txt")
+        file = open("D:\PycharmProjects\PythonDemo\BaiduMap\data\conf.txt")
         html = file.read()
         html = html.replace("var center = '';", "var center = '" + cords + "';")
         html = html.replace("var pathListSTR = '';", "var pathListSTR = '" + path + "';")

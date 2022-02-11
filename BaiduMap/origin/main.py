@@ -448,10 +448,10 @@ def filter_point(dataframe, points, optimized_boundary_path_list, type):
     return reachable_resource_list
 
 
-def process_thread(all_point, ak_list, error_row):
+def process_thread(all_point, part_point, ak_list, error_row):
     # 遍历所有小区，获取可达边界及可达资源点，并写入数据库
     ak_index = 0
-    for row in all_point.itertuples():
+    for row in part_point.itertuples():
         ak = ak_list[ak_index]
         time_start = time.time()
         message = 'ID:' + row.ID + ', AK:' + ak
@@ -462,13 +462,20 @@ def process_thread(all_point, ak_list, error_row):
             # 获取目标点周围步行15分钟可达点
             reachable_poi_list = get_reachable_poi_list(location, ak)
             message += '，可达点个数:' + str(len(reachable_poi_list))
+            # 过滤可达点，只保留数据库中留存的点
+            exist_reachable_poi_list = []
+            for row in all_point.itertuples():
+                point = str(row.LAT) + "," + str(row.LNG)
+                if point in reachable_poi_list:
+                    exist_reachable_poi_list.append(point)
+            message += '，数据库中可达点个数:' + str(len(exist_reachable_poi_list))
             # 根据所有可达点，获取可达范围边界
-            boundary_path_list = get_boundary(reachable_poi_list, ak)
+            boundary_path_list = get_boundary(exist_reachable_poi_list, ak)
             message += '，可达边界点个数:' + str(len(boundary_path_list))
             # 优化可达范围边界
             optimized_boundary_path_list = optimize_path(boundary_path_list)
             # 根据所有可达点，以及是否在优化后的可达范围边界内，过滤出现有资源点
-            reachable_filtered_list = filter_point(all_point, reachable_poi_list, optimized_boundary_path_list, row.TYPE)
+            reachable_filtered_list = filter_point(all_point, exist_reachable_poi_list, optimized_boundary_path_list, row.TYPE)
             if row.TYPE == 'house':
                 message += '，可达资源点个数:'
             else:
@@ -514,7 +521,7 @@ if __name__ == '__main__':
 
         thread_list = []
         for i in range(len(all_point_parts)):
-            thread_list.append(threading.Thread(target=process_thread, args=(all_point_parts[i], aks[i], error_row)))
+            thread_list.append(threading.Thread(target=process_thread, args=(all_point, all_point_parts[i], aks[i], error_row)))
         for thread in thread_list:
             thread.start()
         for thread in thread_list:
