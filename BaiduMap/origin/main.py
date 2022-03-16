@@ -398,13 +398,16 @@ def is_poi_within_poly(poi, poly):
     :return: True/False 是否相交
     """
     # 交点个数
-    intersection = 0
-    # 循环每条边的曲线->each polygon 是二维数组[[x1,y1],[x2,y2]]
+    sinsc=0
+    # 循环每条边的曲线->each polygon 是二维数组[[x1,y1],…[xn,yn]]
     for epoly in poly:
-        if is_ray_intersects_segment(poi, epoly[0], epoly[1]):
-            # 有交点 sinsc 就加1
-            intersection += 1
-    return True if intersection % 2 == 1 else False
+        for i in range(len(epoly)-1):
+            s_poi = epoly[i]
+            e_poi = epoly[i+1]
+            if is_ray_intersects_segment(poi, s_poi, e_poi):
+                # 有交点就加1
+                sinsc += 1
+    return True if sinsc % 2 == 1 else False
 
 
 def filter_point(dataframe, points, optimized_boundary_path_list, type):
@@ -441,7 +444,7 @@ def filter_point(dataframe, points, optimized_boundary_path_list, type):
         if type != 'house' and row.TYPE != 'house':
             continue
         point = str(row.LAT) + "," + str(row.LNG)
-        if point in points and is_poi_within_poly([float(row.LAT), float(row.LNG)], poly):
+        if point in points and is_poi_within_poly([float(row.LNG), float(row.LAT)], poly):
             # 依次判断是否在poly内部
             reachable_resource_list.append(row.ID)
 

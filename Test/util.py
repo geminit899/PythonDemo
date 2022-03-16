@@ -1,43 +1,60 @@
-def isRayIntersectsSegment(poi,s_poi,e_poi): #[x,y] [lng,lat]
-    #输入：判断点，边起点，边终点，都是[lng,lat]格式数组
-    if s_poi[1]==e_poi[1]: #排除与射线平行、重合，线段首尾端点重合的情况
+def is_ray_intersects_segment(poi, s_poi, e_poi):
+    """
+    判断射线是否相交
+    :param poi: 目标点， 如 [39.915,116.404]
+    :param s_poi: 边的一个顶点， 如 [39.915,116.404]
+    :param e_poi: 边的另一个顶点， 如 [39.915,116.404]
+    :return: True/False 是否相交
+    """
+    if s_poi[1] == e_poi[1]:
+        # 排除与射线平行、重合，线段首尾端点重合的情况
         return False
-    if s_poi[1]>poi[1] and e_poi[1]>poi[1]: #线段在射线上边
+    if s_poi[1] > poi[1] and e_poi[1] > poi[1]:
+        # 线段在射线上边
         return False
-    if s_poi[1]<poi[1] and e_poi[1]<poi[1]: #线段在射线下边
+    if s_poi[1] < poi[1] and e_poi[1] < poi[1]:
+        # 线段在射线下边
         return False
-    if s_poi[1]==poi[1] and e_poi[1]>poi[1]: #交点为下端点，对应spoint
+    if s_poi[1] == poi[1] and e_poi[1] > poi[1]:
+        # 交点为下端点，对应spoint
         return False
-    if e_poi[1]==poi[1] and s_poi[1]>poi[1]: #交点为下端点，对应epoint
+    if e_poi[1] == poi[1] and s_poi[1] > poi[1]:
+        # 交点为下端点，对应epoint
         return False
-    if s_poi[0]<poi[0] and e_poi[1]<poi[1]: #线段在射线左边
+    if s_poi[0] < poi[0] and e_poi[1] < poi[1]:
+        # 线段在射线左边
         return False
+    # 求交
+    xseg = e_poi[0] - (e_poi[0] - s_poi[0]) * (e_poi[1] - poi[1]) / (e_poi[1] - s_poi[1])
+    if xseg < poi[0]:
+        # 交点在射线起点的左侧
+        return False
+    # 排除上述情况之后
+    return True
 
-    xseg=e_poi[0]-(e_poi[0]-s_poi[0])*(e_poi[1]-poi[1])/(e_poi[1]-s_poi[1]) #求交
-    if xseg<poi[0]: #交点在射线起点的左侧
-        return False
-    return True  #排除上述情况之后
 
-
-def isPoiWithinPoly(poi,poly):
-    #输入：点，多边形三维数组
-    #poly=[[[x1,y1],[x2,y2],……,[xn,yn],[x1,y1]],[[w1,t1],……[wk,tk]]] 三维数组
-
-    #可以先判断点是否在外包矩形内
-    #if not isPoiWithinBox(poi,mbr=[[0,0],[180,90]]): return False
-    #但算最小外包矩形本身需要循环边，会造成开销，本处略去
-    sinsc=0 #交点个数
-    for epoly in poly: #循环每条边的曲线->each polygon 是二维数组[[x1,y1],…[xn,yn]]
-        for i in range(len(epoly)-1): #[0,len-1]
-            s_poi=epoly[i]
-            e_poi=epoly[i+1]
-            if isRayIntersectsSegment(poi,s_poi,e_poi):
-                sinsc+=1 #有交点就加1
-
-    return True if sinsc%2==1 else  False
+def is_poi_within_poly(poi, poly):
+    """
+    判断某个点是否在一个多边形内部
+    :param poi: 目标点， 如 [39.915,116.404]
+    :param poly: 多边形的三维数组，第二维是多边形的边，第三维是边的两个顶点
+    如 [[[39.915,116.404], [39.915,116.404]], [[39.915,116.404], [39.915,116.404]], [[39.915,116.404], [39.915,116.404]]]
+    :return: True/False 是否相交
+    """
+    # 交点个数
+    sinsc=0
+    # 循环每条边的曲线->each polygon 是二维数组[[x1,y1],…[xn,yn]]
+    for epoly in poly:
+        for i in range(len(epoly)-1):
+            s_poi = epoly[i]
+            e_poi = epoly[i+1]
+            if is_ray_intersects_segment(poi, s_poi, e_poi):
+                # 有交点就加1
+                sinsc += 1
+    return True if sinsc % 2 == 1 else False
 
 if __name__ == '__main__':
-    poi = [4, 7]
+    poi = [1, 8]
     path = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [0, 7], [0, 8], [0, 9],
             [1, 9], [2, 9], [3, 9], [4, 9], [5, 9],
             [5, 8], [4, 8], [3, 8], [2, 8],
@@ -51,5 +68,5 @@ if __name__ == '__main__':
     poly = []
     for i in range(len(path) - 1):
         poly.append([path[i], path[i + 1]])
-    res = isPoiWithinPoly(poi, poly)
+    res = is_poi_within_poly(poi, poly)
     print(res)
