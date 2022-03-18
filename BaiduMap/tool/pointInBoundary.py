@@ -87,10 +87,11 @@ def divide_list_to_parts(list, n):
     return list_parts
 
 
-def process_thread(points_array, boundary):
+def process_thread(all_point, boundary):
     for row in boundary:
         path_id = str(row[0])
-        path_list = str(row[1]).split(";")
+        path_type = str(row[1])
+        path_list = str(row[2]).split(";")
         # 将 path_list 构造成poly
         poly = []
         for i in range(len(path_list) - 1):
@@ -101,17 +102,23 @@ def process_thread(points_array, boundary):
             poly.append([point1, point2])
 
         in_boundary_point = []
-        for point in points_array:
-            if isPoiWithinPoly(point, poly):
-                in_boundary_point.append(str(point[0]) + ',' + str(point[1]))
+        for point in all_point.itertuples():
+            point_tuple = [float(point.LNG), float(point.LAT)]
+            if path_type == 'house' and point.TYPE == 'house':
+                continue
+            if path_type != 'house' and point.TYPE != 'house':
+                continue
+            if isPoiWithinPoly(point_tuple, poly):
+                in_boundary_point.append(point.ID)
 
-        db = cx_Oracle.connect('geminit', 'hack', '192.168.0.112:1521/helowin')
-        cr = db.cursor()
-        cr.setinputsizes(POINTS=cx_Oracle.CLOB)
-        cr.execute("insert into REACHABLE_POINT (ID, POINTS) values ('" + path_id + "', :POINTS)", POINTS=';'.join(in_boundary_point))
-        cr.close()
-        db.commit()
-        db.close()
+        # db = cx_Oracle.connect('geminit', 'hack', '192.168.0.112:1521/helowin')
+        # cr = db.cursor()
+        # cr.setinputsizes(POINTS=cx_Oracle.CLOB)
+        # cr.execute("insert into REACHABLE_POINT (ID, POINTS) values ('" + path_id + "', :POINTS)", POINTS=';'.join(in_boundary_point))
+        # cr.close()
+        # db.commit()
+        # db.close()
+        print(';'.join(in_boundary_point))
 
         LOG.info(str(path_id) + ' reachable_point size: ' + str(len(in_boundary_point)))
 
@@ -124,24 +131,20 @@ if __name__ == '__main__':
     columns = [i[0] for i in cr.description]
     all_point = pd.DataFrame(rs, columns=columns)[['ID', 'LNG', 'LAT', 'TYPE']]
     cr = db.cursor()
-    cr.execute("select ID, PATH from BOUNDARY order by ID asc")
+    cr.execute("select b.ID, m.TYPE, b.PATH from BOUNDARY b join MAP_POINT m on m.ID = b.ID order by b.ID asc")
     boundary = []
     for i in cr:
-        text = i[1].read()
-        boundary.append([i[0], text])
+        text = i[2].read()
+        boundary.append([i[0], i[1], text])
     cr.close()
     db.close()
-
-    points_array = []
-    for row in all_point.itertuples():
-        points_array.append([float(row.LNG), float(row.LAT)])
 
     boundary_part = divide_list_to_parts(boundary, 5)
 
     thread_list = []
     for i in range(len(boundary_part)):
         thread_list.append(
-            threading.Thread(target=process_thread, args=(points_array, boundary_part[i])))
+            threading.Thread(target=process_thread, args=(all_point, boundary_part[i])))
     for thread in thread_list:
         thread.start()
     for thread in thread_list:
